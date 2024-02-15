@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahoy.io</title>
+    <style>
+        body, html { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        #uiContainer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="uiContainer">
+        <div id="healthContainer"></div>
+        <!-- Add your UI buttons here -->
+        <button onclick="fireCannon()">Fire Cannon</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size to match the window size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const boat = {
+            x: canvas.width / 2,
+            y: canvas.height - 50,
+            width: 50,
+            height: 30,
+            color: 'brown',
+            speed: 2,
+            rotationSpeed: 0.03,
+            rotation: 0,
+            image: new Image()
+        };
+
+        const compass = new Image();
+        compass.src = 'compass.png';
+
+        const cannonballs = [];
+        const cannonballSpeed = 5;
+        const cannonballFireDelay = 3000; // 3 seconds delay
+        let lastCannonballFireTime = 0;
+
+        const healthContainer = document.getElementById('healthContainer');
+        const maxHealth = 5;
+        let currentHealth = maxHealth;
+
+        boat.image.src = 'boat.png';
+
+        function drawSea() {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawBoat() {
+            ctx.save();
+            ctx.translate(boat.x, boat.y);
+            ctx.rotate(boat.rotation);
+            ctx.drawImage(boat.image, -boat.width / 2, -boat.height / 2, boat.width, boat.height);
+            ctx.restore();
+        }
+
+        function drawCompass() {
+            ctx.drawImage(compass, 1700, canvas.height - compass.height - 10, 200, 200);
+        }
+
+        function drawCannonballs() {
+            for (const cannonball of cannonballs) {
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(cannonball.x, cannonball.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateCannonballs() {
+            for (const cannonball of cannonballs) {
+                cannonball.x += Math.cos(cannonball.angle) * cannonballSpeed;
+                cannonball.y += Math.sin(cannonball.angle) * cannonballSpeed;
+            }
+
+            // Remove cannonballs that are out of bounds
+            cannonballs.forEach((cannonball, index) => {
+                if (cannonball.x < 0 || cannonball.x > canvas.width || cannonball.y < 0 || cannonball.y > canvas.height) {
+                    cannonballs.splice(index, 1);
+                }
+            });
+        }
+
+        function fireCannon() {
+            const currentTime = Date.now();
+            if (currentTime - lastCannonballFireTime > cannonballFireDelay) {
+                lastCannonballFireTime = currentTime;
+
+                const cannonball = {
+                    x: boat.x,
+                    y: boat.y,
+                    angle: boat.rotation
+                };
+                cannonballs.push(cannonball);
+            }
+        }
+
+        function updateBoat() {
+            // Rotate the boat with 'A' and 'D' keys
+            if (keys['KeyA']) {
+                boat.rotation -= boat.rotationSpeed;
+            }
+            if (keys['KeyD']) {
+                boat.rotation += boat.rotationSpeed;
+            }
+
+            // Move the boat forward with 'W' key
+            if (keys['KeyW']) {
+                boat.x += Math.cos(boat.rotation) * boat.speed;
+                boat.y += Math.sin(boat.rotation) * boat.speed;
+            }
+        }
+
+        function drawHealth() {
+            healthContainer.innerHTML = '';
+            for (let i = 0; i < currentHealth; i++) {
+                const heart = document.createElement('span');
+                heart.innerHTML = '❤️';
+                healthContainer.appendChild(heart);
+            }
+        }
+
+        function gameLoop() {
+            drawSea();
+            updateBoat();
+            drawBoat();
+            drawCompass();
+            updateCannonballs();
+            drawCannonballs();
+            drawHealth();
+            requestAnimationFrame(gameLoop);
+        }
+
+        const keys = {};
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        // Update canvas size when the window is resized
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Start the game loop
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
